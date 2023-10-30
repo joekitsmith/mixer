@@ -1,5 +1,6 @@
 import numpy as np
 
+from mixer.logger import logger
 from mixer.track import SAMPLE_RATE, Track
 
 
@@ -86,6 +87,8 @@ class Mix:
 
         self._track_count += 1
         self.prev_downbeats = curr_downbeats
+
+        logger.info(f"Added {track} to mix")
 
 
 def fade_track(audio: np.ndarray, fade_duration: int, mode: str = "in") -> np.ndarray:

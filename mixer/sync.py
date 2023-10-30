@@ -6,6 +6,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import soundfile as sf
 
+from mixer.logger import logger
 from mixer.mix import Mix
 from mixer.track import SAMPLE_RATE, Track, TrackGroup
 
@@ -47,6 +48,8 @@ def mix_track_group(track_group: TrackGroup) -> np.ndarray:
 
         mix.add_track(track, 30, 60)
 
+    logger.info(f"{len(track_group.tracks)} tracks successfully mixed")
+
     return mix.audio
 
 
@@ -71,6 +74,8 @@ def evaluate_tracklist(tracklist_dir: str = "./data") -> list[TrackGroup]:
             track.load()
             track.calculate_bpm()
             tracklist.append(track)
+
+    logger.info(f"Loaded {len(tracklist)} tracks from {tracklist_dir}")
 
     track_groups = get_track_groups(tracklist)
 
@@ -112,6 +117,17 @@ def get_track_groups(tracklist: list[Track], tempo_diff: int = 10) -> list[Track
 
     for group in groups:
         group.calculate_bpm()
+
+    logger.info(f"Organised tracks into {len(groups)} groups:")
+    for i, group in enumerate(groups):
+        if group.bpm is None:
+            logger.info(
+                f"Group {i+1} contains {len(group.tracks)} tracks but no average tempo could be deduced"
+            )
+        else:
+            logger.info(
+                f"Group {i+1} contains {len(group.tracks)} tracks with an average tempo of {round(group.bpm, 2)}"
+            )
 
     return groups
 

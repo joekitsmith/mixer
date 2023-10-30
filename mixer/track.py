@@ -6,6 +6,8 @@ import numpy as np
 import pyrubberband as pyrb
 from madmom.features.downbeats import DBNDownBeatTrackingProcessor, RNNDownBeatProcessor
 
+from mixer.logger import logger
+
 SAMPLE_RATE = 44100  # Sample rate fixed for essentia
 
 
@@ -25,6 +27,9 @@ class Track:
         self._audio = np.array([])
         self._bpm = None
         self._downbeats = np.array([])
+
+    def __str__(self):
+        return self._name
 
     @property
     def audio(self) -> np.ndarray:
@@ -62,6 +67,8 @@ class Track:
         self._audio = pyrb.time_stretch(self._audio, SAMPLE_RATE, stretch_factor)
         self.calculate_bpm()
 
+        logger.info(f"Tempo for {self} set to {round(self._bpm, 2)}")
+
         return self._audio
 
     def load(self, path: Optional[str] = None) -> np.ndarray:
@@ -85,6 +92,8 @@ class Track:
         loader = es.MonoLoader(filename=path, sampleRate=SAMPLE_RATE)
         self._audio = loader()
 
+        logger.info(f"Loaded audio for {self}")
+
         return self._audio
 
     def crop(self, offset: int, length: int) -> None:
@@ -106,6 +115,10 @@ class Track:
 
         self._audio = self._audio[start_sample : end_sample + 1]
 
+        logger.info(
+            f"Cropped {self} audio between downbeats {offset} and {offset + length}"
+        )
+
     def calculate_bpm(self) -> float:
         """
         Determine BPM for audio using essentia
@@ -120,6 +133,8 @@ class Track:
 
         assert self._bpm is not None
 
+        logger.info(f"Calculated tempo for {self} at {round(self._bpm, 2)}")
+
         return self._bpm
 
     def calculate_downbeats(self) -> None:
@@ -131,6 +146,8 @@ class Track:
         proc_res = proc(act)
 
         self._downbeats = proc_res[proc_res[:, 1] == 1, 0]
+
+        logger.info(f"Calculated downbeats for {self}")
 
 
 class TrackGroup:
