@@ -26,4 +26,4 @@ RUN . .venv/bin/activate
 
 EXPOSE 8000
 
-CMD ["poetry", "run", "hypercorn", "mixer.main:app", "--bind", "0.0.0.0:8080"]
+CMD ["poetry", "run", "hypercorn", "mixer.api.main:app", "--bind", "0.0.0.0:8080"]

@@ -1,7 +1,11 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from mixer.routers.upload import upload_router
+from mixer.api.database import Base, engine
+from mixer.api.routers.mix import mix_router
+from mixer.api.routers.track import track_router
+
+Base.metadata.create_all(bind=engine)
 
 app = FastAPI()
 
@@ -17,7 +21,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(upload_router)
+app.include_router(track_router)
+app.include_router(mix_router)
 
 
 @app.get("/health", tags=["health_check"])
