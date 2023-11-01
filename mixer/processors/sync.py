@@ -7,8 +7,8 @@ import numpy as np
 import soundfile as sf
 
 from mixer.logger import logger
-from mixer.mix import MixProcessor
-from mixer.track import SAMPLE_RATE, TrackGroupProcessor, TrackProcessor
+from mixer.processors.mix import MixProcessor
+from mixer.processors.track import SAMPLE_RATE, TrackGroupProcessor, TrackProcessor
 
 
 def main():

@@ -1,7 +1,7 @@
 import numpy as np
 
 from mixer.logger import logger
-from mixer.track import SAMPLE_RATE, TrackProcessor
+from mixer.processors.track import SAMPLE_RATE, TrackProcessor
 
 
 class MixProcessor:
