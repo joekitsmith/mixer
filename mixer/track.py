@@ -11,7 +11,7 @@ from mixer.logger import logger
 SAMPLE_RATE = 44100  # Sample rate fixed for essentia
 
 
-class Track:
+class TrackProcessor:
     SAMPLE_RATE = SAMPLE_RATE
 
     def __init__(self, file_path: str) -> None:
@@ -150,9 +150,9 @@ class Track:
         logger.info(f"Calculated downbeats for {self}")
 
 
-class TrackGroup:
+class TrackGroupProcessor:
     def __init__(self) -> None:
-        self._tracks: list[Track] = []
+        self._tracks: list[TrackProcessor] = []
         self._bpm: Optional[float] = None
 
     @property
@@ -160,16 +160,16 @@ class TrackGroup:
         return self._bpm
 
     @property
-    def tracks(self) -> list[Track]:
+    def tracks(self) -> list[TrackProcessor]:
         return self._tracks
 
-    def add_track(self, track: Track) -> None:
+    def add_track(self, track: TrackProcessor) -> None:
         """
         Add a track to the track group.
 
         Parameters
         ----------
-        track : Track
+        track : TrackProcessor
             track to be added
         """
         self._tracks.append(track)

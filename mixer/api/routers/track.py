@@ -1,5 +1,6 @@
 import io
 import os
+import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
 from minio import Minio
@@ -9,6 +10,7 @@ from sqlalchemy.orm import Session
 from mixer.api import schemas
 from mixer.api.crud import crud_track
 from mixer.api.database import get_db
+from mixer.track import TrackProcessor
 
 track_router = APIRouter(prefix="/track", tags=["Track"])
 
@@ -113,3 +115,41 @@ def get_track_by_id(track_id: str, db: Session = Depends(get_db)):
     if not track:
         raise HTTPException(status_code=404, detail="Track not found.")
     return track
+
+
+@track_router.get("/{track_id}/downbeats", response_model=schemas.TrackDownbeats)
+def get_track_downbeats(track_id: str, db: Session = Depends(get_db)):
+    """
+    Get the time points of a track's downbeats.
+
+    Parameters
+    ----------
+    track_id : str
+        ID of track in database
+
+    Returns
+    -------
+    track_downbeats : schemas.TrackDownbeats
+        time points of track's downbeats in seconds
+
+    Raises
+    ------
+    HTTPException
+        If the track could not be found, a 404 error is raised
+    """
+    track = crud_track.get_track(db, track_id)
+    if not track:
+        raise HTTPException(status_code=404, detail="Track not found.")
+
+    audio = minio_client.get_object(track.bucket_id, track.filename)
+
+    with tempfile.NamedTemporaryFile(delete=True) as temp:
+        temp.write(audio)
+
+        track_processor = TrackProcessor(temp.name)
+        track_processor.load(audio)
+        track_processor.calculate_downbeats()
+
+    return schemas.TrackDownbeats(
+        track_id=track.id, downbeats=track_processor.downbeats
+    )

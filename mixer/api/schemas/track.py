@@ -17,3 +17,8 @@ class Track(TrackBase):
 
     class Config:
         orm_mode = True
+
+
+class TrackDownbeats(BaseModel):
+    track_id: str
+    downbeats: list[float]
