@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 
 
@@ -19,6 +21,7 @@ class Track(TrackBase):
         orm_mode = True
 
 
-class TrackDownbeats(BaseModel):
+class TrackAnalysis(BaseModel):
     track_id: str
-    downbeats: list[float]
+    bpm: float
+    downbeats: Optional[list[float]]

@@ -117,8 +117,10 @@ def get_track_by_id(track_id: str, db: Session = Depends(get_db)):
     return track
 
 
-@track_router.get("/{track_id}/downbeats", response_model=schemas.TrackDownbeats)
-def get_track_downbeats(track_id: str, db: Session = Depends(get_db)):
+@track_router.get("/{track_id}/analysis", response_model=schemas.TrackAnalysis)
+def get_track_analysis(
+    track_id: str, downbeats: bool = True, db: Session = Depends(get_db)
+):
     """
     Get the time points of a track's downbeats.
 
@@ -126,11 +128,13 @@ def get_track_downbeats(track_id: str, db: Session = Depends(get_db)):
     ----------
     track_id : str
         ID of track in database
+    downbeats : bool
+        If downbeats should be calculated for track
 
     Returns
     -------
-    track_downbeats : schemas.TrackDownbeats
-        time points of track's downbeats in seconds
+    track_analysis : schemas.TrackAnalysis
+        analysis of track including tempo and downbeats
 
     Raises
     ------
@@ -148,8 +152,12 @@ def get_track_downbeats(track_id: str, db: Session = Depends(get_db)):
 
         track_processor = TrackProcessor(temp.name)
         track_processor.load(audio)
-        track_processor.calculate_downbeats()
+        track_processor.calculate_bpm()
+        track_analysis = schemas.TrackAnalysis(
+            track_id=track.id, bpm=track_processor.bpm
+        )
+        if downbeats:
+            track_processor.calculate_downbeats()
+            track_analysis.downbeats = track_processor.downbeats.tolist()
 
-    return schemas.TrackDownbeats(
-        track_id=track.id, downbeats=track_processor.downbeats
-    )
+    return track_analysis
