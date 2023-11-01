@@ -14,15 +14,20 @@ SAMPLE_RATE = 44100  # Sample rate fixed for essentia
 class TrackProcessor:
     SAMPLE_RATE = SAMPLE_RATE
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str, name: Optional[str] = None) -> None:
         """
         Parameters
         ----------
         file_path : str
             absolute or relative location of track audio file
+        name : Optional[str]
+            name to give to track if not present in file path
         """
         self._file_path = pathlib.Path(file_path)
-        self._name = self._file_path.stem
+        if name is None:
+            self._name = self._file_path.stem
+        else:
+            self._name = name
 
         self._audio = np.array([])
         self._bpm = None

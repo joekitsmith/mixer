@@ -148,13 +148,15 @@ def get_track_analysis(
     audio = minio_client.get_object(track.bucket_id, track.filename)
 
     with tempfile.NamedTemporaryFile(delete=True) as temp:
-        temp.write(audio)
+        for a in audio.stream():
+            temp.write(a)
+        temp.flush()
 
-        track_processor = TrackProcessor(temp.name)
-        track_processor.load(audio)
+        track_processor = TrackProcessor(temp.name, name=track.filename)
+        track_processor.load()
         track_processor.calculate_bpm()
         track_analysis = schemas.TrackAnalysis(
-            track_id=track.id, bpm=track_processor.bpm
+            track_id=track.id, bpm=track_processor.bpm, downbeats=None
         )
         if downbeats:
             track_processor.calculate_downbeats()
