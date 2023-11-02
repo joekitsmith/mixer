@@ -1,9 +1,16 @@
+import tempfile
+
+import soundfile as sf
 from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
 
 from mixer.api import schemas
 from mixer.api.crud import crud_mix
 from mixer.api.database import get_db
+from mixer.api.minio_client import minio_client
+from mixer.processors.sync import get_track_groups, mix_track_group
+from mixer.processors.track import SAMPLE_RATE, TrackProcessor
 
 mix_router = APIRouter(prefix="/mix", tags=["Mix"])
 
@@ -92,10 +99,52 @@ def discard_mix(request: Request, response: Response):
     Returns
     -------
     mix : schemas.MixDelete
-        Message describing discard action taken, if any
+        message describing discard action taken, if any
     """
     mix_id = request.cookies.get("mix_id")
     if not mix_id:
         return {"message": "No mix found in session"}
     response.delete_cookie("mix_id")
     return {"message": f"Mix {mix_id} removed from session"}
+
+
+@mix_router.post("/process")
+def process_mix(
+    request: Request, response: Response, db: Session = Depends(get_db)
+) -> FileResponse:
+    """
+    Trigger processing of the mix using uploaded tracks and designated cue points.
+
+    Parameters
+    ----------
+
+
+    Returns
+    -------
+    mix : schemas.MixProcess
+        message describing mix processing status
+    """
+    mix = get_current_mix(request, response, db)
+
+    tracklist = []
+    for track in mix.tracks:
+        audio = minio_client.get_object(track.bucket_id, track.filename)
+        with tempfile.NamedTemporaryFile(delete=True) as temp:
+            for a in audio.stream():
+                temp.write(a)
+            temp.flush()
+
+            track_proc = TrackProcessor(temp.name)
+            track_proc.load()
+            track_proc.calculate_bpm()
+            track_proc.calculate_downbeats()
+            tracklist.append(track_proc)
+
+    track_groups = get_track_groups(tracklist)
+    track_group = max(track_groups, key=lambda x: len(x.tracks))
+    combined_audio = mix_track_group(track_group)
+
+    output_path = f"{mix.id}.mp3"
+    sf.write(output_path, combined_audio, int(SAMPLE_RATE))
+
+    return FileResponse(output_path)

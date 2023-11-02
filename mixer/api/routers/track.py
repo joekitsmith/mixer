@@ -1,33 +1,17 @@
 import io
-import os
 import tempfile
 
 from fastapi import APIRouter, Depends, HTTPException, Request, UploadFile
-from minio import Minio
 from minio.error import S3Error
 from sqlalchemy.orm import Session
 
 from mixer.api import schemas
 from mixer.api.crud import crud_track
 from mixer.api.database import get_db
-from mixer.track import TrackProcessor
+from mixer.api.minio_client import MINIO_BUCKET, minio_client
+from mixer.processors.track import TrackProcessor
 
 track_router = APIRouter(prefix="/track", tags=["Track"])
-
-MINIO_ENDPOINT = os.environ["MINIO_ENDPOINT"]
-MINIO_ACCESS_KEY = os.environ["MINIO_ACCESS_KEY"]
-MINIO_SECRET_KEY = os.environ["MINIO_SECRET_KEY"]
-MINIO_BUCKET = "my-bucket"
-
-minio_client = Minio(
-    MINIO_ENDPOINT,
-    access_key=MINIO_ACCESS_KEY,
-    secret_key=MINIO_SECRET_KEY,
-    secure=False,  # Change to True if your MinIO uses HTTPS
-)
-
-if not minio_client.bucket_exists(MINIO_BUCKET):
-    minio_client.make_bucket(MINIO_BUCKET)
 
 
 @track_router.post("/", response_model=schemas.Track)
@@ -50,6 +34,8 @@ async def add_track(request: Request, file: UploadFile, db: Session = Depends(ge
     HTTPException
         If the mix ID request cookie is not present, a 400 error is raised
     HTTPException
+        If the audio file does not have a filename or content type, a 400 error is raised
+    HTTPException
         If the audio file is not the correct format, a 400 error is raised
     HTTPException
         If the audio file could not be saved to minio, a 500 error is raised
@@ -62,6 +48,8 @@ async def add_track(request: Request, file: UploadFile, db: Session = Depends(ge
         )
 
     # Validate file format
+    if file.filename is None or file.content_type is None:
+        raise HTTPException(status_code=400, detail="Invalid file")
     if not file.filename.endswith((".mp3", ".wav")):
         raise HTTPException(status_code=400, detail="Invalid file format")
 
@@ -139,6 +127,8 @@ def get_track_analysis(
     Raises
     ------
     HTTPException
+        If tempo could not be calculated for a track, a 500 error is raised
+    HTTPException
         If the track could not be found, a 404 error is raised
     """
     track = crud_track.get_track(db, track_id)
@@ -155,6 +145,12 @@ def get_track_analysis(
         track_processor = TrackProcessor(temp.name, name=track.filename)
         track_processor.load()
         track_processor.calculate_bpm()
+        if track_processor.bpm is None:
+            raise HTTPException(
+                status_code=500,
+                detail=f"Tempo could not be calculated for {track.filename}",
+            )
+
         track_analysis = schemas.TrackAnalysis(
             track_id=track.id, bpm=track_processor.bpm, downbeats=None
         )
