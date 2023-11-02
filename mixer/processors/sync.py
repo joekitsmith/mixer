@@ -39,14 +39,8 @@ def mix_track_group(track_group: TrackGroupProcessor) -> np.ndarray:
 
     mix = MixProcessor(bpm)
 
-    for i, track in enumerate(track_group.tracks):
-        track.crop(0, 90)
-
-        if i == 0:
-            mix.add_track(track, 30, 60)
-            continue
-
-        mix.add_track(track, 30, 60)
+    for track in track_group.tracks:
+        mix.add_track(track, 120, 150)
 
     logger.info(f"{len(track_group.tracks)} tracks successfully mixed")
 

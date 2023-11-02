@@ -69,7 +69,9 @@ class TrackProcessor:
         assert self._bpm is not None
 
         stretch_factor = bpm / self._bpm
-        self._audio = pyrb.time_stretch(self._audio, SAMPLE_RATE, stretch_factor)
+        self._audio = pyrb.time_stretch(
+            self._audio, SAMPLE_RATE, stretch_factor
+        ).astype(np.float32)
         self.calculate_bpm()
 
         logger.info(f"Tempo for {self} set to {round(self._bpm, 2)}")
@@ -150,7 +152,7 @@ class TrackProcessor:
         act = RNNDownBeatProcessor()(self._audio)
         proc_res = proc(act)
 
-        self._downbeats = proc_res[proc_res[:, 1] == 1, 0]
+        self._downbeats = proc_res[proc_res[:, 1] == 1, 0].astype(np.float32)
 
         logger.info(f"Calculated downbeats for {self}")
 
