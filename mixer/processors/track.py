@@ -11,18 +11,23 @@ from mixer.logger import logger
 SAMPLE_RATE = 44100  # Sample rate fixed for essentia
 
 
-class Track:
+class TrackProcessor:
     SAMPLE_RATE = SAMPLE_RATE
 
-    def __init__(self, file_path: str) -> None:
+    def __init__(self, file_path: str, name: Optional[str] = None) -> None:
         """
         Parameters
         ----------
         file_path : str
             absolute or relative location of track audio file
+        name : Optional[str]
+            name to give to track if not present in file path
         """
         self._file_path = pathlib.Path(file_path)
-        self._name = self._file_path.stem
+        if name is None:
+            self._name = self._file_path.stem
+        else:
+            self._name = name
 
         self._audio = np.array([])
         self._bpm = None
@@ -64,7 +69,9 @@ class Track:
         assert self._bpm is not None
 
         stretch_factor = bpm / self._bpm
-        self._audio = pyrb.time_stretch(self._audio, SAMPLE_RATE, stretch_factor)
+        self._audio = pyrb.time_stretch(
+            self._audio, SAMPLE_RATE, stretch_factor
+        ).astype(np.float32)
         self.calculate_bpm()
 
         logger.info(f"Tempo for {self} set to {round(self._bpm, 2)}")
@@ -145,14 +152,14 @@ class Track:
         act = RNNDownBeatProcessor()(self._audio)
         proc_res = proc(act)
 
-        self._downbeats = proc_res[proc_res[:, 1] == 1, 0]
+        self._downbeats = proc_res[proc_res[:, 1] == 1, 0].astype(np.float32)
 
         logger.info(f"Calculated downbeats for {self}")
 
 
-class TrackGroup:
+class TrackGroupProcessor:
     def __init__(self) -> None:
-        self._tracks: list[Track] = []
+        self._tracks: list[TrackProcessor] = []
         self._bpm: Optional[float] = None
 
     @property
@@ -160,16 +167,16 @@ class TrackGroup:
         return self._bpm
 
     @property
-    def tracks(self) -> list[Track]:
+    def tracks(self) -> list[TrackProcessor]:
         return self._tracks
 
-    def add_track(self, track: Track) -> None:
+    def add_track(self, track: TrackProcessor) -> None:
         """
         Add a track to the track group.
 
         Parameters
         ----------
-        track : Track
+        track : TrackProcessor
             track to be added
         """
         self._tracks.append(track)

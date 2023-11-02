@@ -1,10 +1,10 @@
 import numpy as np
 
 from mixer.logger import logger
-from mixer.track import SAMPLE_RATE, Track
+from mixer.processors.track import SAMPLE_RATE, TrackProcessor
 
 
-class Mix:
+class MixProcessor:
     def __init__(self, bpm: float):
         """
         Parameters
@@ -34,7 +34,7 @@ class Mix:
         return self._track_count
 
     def add_track(
-        self, track: Track, cue_in: int, cue_out: int, overlap: int = 16
+        self, track: TrackProcessor, cue_in: int, cue_out: int, overlap: int = 16
     ) -> None:
         """
         Add a new track to the existing mix audio.
@@ -44,7 +44,7 @@ class Mix:
 
         Parameters
         ----------
-        track : Track
+        track : TrackProcessor
             track to be added to mix
         cue_in : int
             track's downbeat where the track's audio will start

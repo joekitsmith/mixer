@@ -7,8 +7,8 @@ import numpy as np
 import soundfile as sf
 
 from mixer.logger import logger
-from mixer.mix import Mix
-from mixer.track import SAMPLE_RATE, Track, TrackGroup
+from mixer.processors.mix import MixProcessor
+from mixer.processors.track import SAMPLE_RATE, TrackGroupProcessor, TrackProcessor
 
 
 def main():
@@ -18,14 +18,14 @@ def main():
     sf.write("combined.mp3", combined_audio, int(SAMPLE_RATE))
 
 
-def mix_track_group(track_group: TrackGroup) -> np.ndarray:
+def mix_track_group(track_group: TrackGroupProcessor) -> np.ndarray:
     """
     Mix a group of tracks to their average tempo.
     If no average tempo for track group, mix to default tempo value.
 
     Parameters
     ----------
-    track_group : TrackGroup
+    track_group : TrackGroupProcessor
         a group of tracks with similar tempos
 
     Returns
@@ -37,23 +37,17 @@ def mix_track_group(track_group: TrackGroup) -> np.ndarray:
     if bpm is None:
         bpm = 130.0
 
-    mix = Mix(bpm)
+    mix = MixProcessor(bpm)
 
-    for i, track in enumerate(track_group.tracks):
-        track.crop(0, 90)
-
-        if i == 0:
-            mix.add_track(track, 30, 60)
-            continue
-
-        mix.add_track(track, 30, 60)
+    for track in track_group.tracks:
+        mix.add_track(track, 120, 150)
 
     logger.info(f"{len(track_group.tracks)} tracks successfully mixed")
 
     return mix.audio
 
 
-def evaluate_tracklist(tracklist_dir: str = "./data") -> list[TrackGroup]:
+def evaluate_tracklist(tracklist_dir: str = "./data") -> list[TrackGroupProcessor]:
     """
     Identify tracks in an input directory and combine them into groups.
 
@@ -64,13 +58,13 @@ def evaluate_tracklist(tracklist_dir: str = "./data") -> list[TrackGroup]:
 
     Returns
     -------
-    track_groups : list[TrackGroups]
+    track_groups : list[TrackGroupProcessors]
         all tracks in directory bundled into groups with similar tempos
     """
-    tracklist: list[Track] = []
+    tracklist: list[TrackProcessor] = []
     for file in os.listdir(tracklist_dir):
         if file.endswith(".mp3"):
-            track = Track(f"{tracklist_dir}/{file}")
+            track = TrackProcessor(f"{tracklist_dir}/{file}")
             track.load()
             track.calculate_bpm()
             tracklist.append(track)
@@ -82,7 +76,9 @@ def evaluate_tracklist(tracklist_dir: str = "./data") -> list[TrackGroup]:
     return track_groups
 
 
-def get_track_groups(tracklist: list[Track], tempo_diff: int = 10) -> list[TrackGroup]:
+def get_track_groups(
+    tracklist: list[TrackProcessor], tempo_diff: int = 10
+) -> list[TrackGroupProcessor]:
     """
     Bundle tracks into groups based on how similar their tempos are.
 
@@ -95,23 +91,23 @@ def get_track_groups(tracklist: list[Track], tempo_diff: int = 10) -> list[Track
 
     Returns
     -------
-    groups : list[TrackGroup]
+    groups : list[TrackGroupProcessor]
         track groups for input tracks
     """
     tracklist_bpm_sorted = sorted(tracklist, key=lambda x: cast(float, x.bpm))
 
-    groups: list[TrackGroup] = []
+    groups: list[TrackGroupProcessor] = []
     for track in tracklist_bpm_sorted:
         if track.bpm is not None:
             if not groups:
-                group = TrackGroup()
+                group = TrackGroupProcessor()
                 group.add_track(track)
                 groups.append(group)
             elif groups[-1].tracks[0].bpm is not None:
                 if track.bpm - groups[-1].tracks[0].bpm <= tempo_diff:
                     groups[-1].tracks.append(track)
                 else:
-                    group = TrackGroup()
+                    group = TrackGroupProcessor()
                     group.add_track(track)
                     groups.append(group)
 

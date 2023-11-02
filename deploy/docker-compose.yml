@@ -1,0 +1,40 @@
+version: "3.8"
+services:
+  mixer-minio:
+    image: minio/minio
+    container_name: mixer-minio
+    environment:
+      - MINIO_ROOT_USER=myaccesskey
+      - MINIO_ROOT_PASSWORD=mysecretkey
+    command: server /data
+    volumes:
+      - minio-data:/data
+    network_mode: host
+    healthcheck:
+      test: curl -I http://localhost:9000/minio/health/live
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+  mixer-api:
+    image: mixer-api
+    build:
+      context: ..
+      dockerfile: ./deploy/api.Dockerfile
+    container_name: mixer-api
+    environment:
+      - MINIO_ENDPOINT=localhost:9000
+      - MINIO_ACCESS_KEY=myaccesskey
+      - MINIO_SECRET_KEY=mysecretkey
+    network_mode: host
+    depends_on:
+      mixer-minio:
+        condition: service_healthy
+    healthcheck:
+      test: wget http://localhost:8000/docs -O - || exit 1
+      interval: 5s
+      timeout: 10s
+      retries: 20
+
+volumes:
+  minio-data:
