@@ -2,20 +2,20 @@ import { useRoutes } from "react-router-dom";
 import { Navigate } from "react-router-dom";
 import { lazyImport } from "../utils/lazyImport";
 
-const { Tracks } = lazyImport(() => import("../features/tracks"), "Tracks");
+const { Mixer } = lazyImport(() => import("../features/mixer"), "Mixer");
 
 export const routes = [
   {
     path: "/",
-    element: <Navigate replace to="/tracks" />,
+    element: <Navigate replace to="/mixer" />,
   },
   {
     path: "/app",
-    element: <Navigate replace to="/tracks" />,
+    element: <Navigate replace to="/mixer" />,
   },
   {
-    path: "/tracks",
-    element: <Tracks />,
+    path: "/mixer",
+    element: <Mixer />,
   },
 ];
 
