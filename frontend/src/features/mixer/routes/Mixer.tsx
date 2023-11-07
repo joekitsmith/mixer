@@ -6,7 +6,7 @@ import { Grid } from "@mui/material";
 
 export const Mixer = () => {
   return (
-    <Grid container sx={{ height: "98vh" }}>
+    <Grid container spacing={4} sx={{ height: "100vh", p: 3 }}>
       <Grid item xs={12}>
         <Waveform />
       </Grid>
